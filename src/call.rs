@@ -8,6 +8,7 @@ use js_sys::{Array, Uint8Array};
 use tonic::body::BoxBody;
 use wasm_bindgen::JsValue;
 use web_sys::{Headers, RequestCredentials, RequestInit};
+use http_body_util::BodyExt;
 
 use crate::{fetch::fetch, options::FetchOptions, Error, ResponseBody};
 
@@ -48,9 +49,16 @@ fn prepare_headers(header_map: &HeaderMap<HeaderValue>) -> Result<Headers, Error
 
     for (header_name, header_value) in header_map.iter() {
         if header_name != CONTENT_TYPE && header_name != ACCEPT {
-            headers
-                .append(header_name.as_str(), header_value.to_str()?)
-                .map_err(Error::js_error)?;
+            match header_value.to_str() {
+                Ok(header_value) => {
+                    headers
+                    .append(header_name.as_str(), header_value)
+                    .map_err(Error::js_error)?;
+                },
+                Err(e) => {
+                    return Err(Error::JsError(format!("Invalid header value: {}", e.to_string())));
+                },
+            }
         }
     }
 
@@ -58,7 +66,8 @@ fn prepare_headers(header_map: &HeaderMap<HeaderValue>) -> Result<Headers, Error
 }
 
 async fn prepare_body(request: Request<BoxBody>) -> Result<Option<JsValue>, Error> {
-    let body = request.into_body().data().await.transpose()?;
+    let body = Some(request.into_body().collect().await.unwrap().to_bytes());
+
     Ok(body.map(|bytes| Uint8Array::from(bytes.as_ref()).into()))
 }
 
