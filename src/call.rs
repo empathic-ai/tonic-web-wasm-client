@@ -8,6 +8,7 @@ use js_sys::{Array, Uint8Array};
 use tonic::body::BoxBody;
 use wasm_bindgen::JsValue;
 use web_sys::{Headers, RequestCredentials, RequestInit};
+use http_body_util::BodyExt;
 
 use crate::{fetch::fetch, options::FetchOptions, Error, ResponseBody};
 
@@ -58,7 +59,8 @@ fn prepare_headers(header_map: &HeaderMap<HeaderValue>) -> Result<Headers, Error
 }
 
 async fn prepare_body(request: Request<BoxBody>) -> Result<Option<JsValue>, Error> {
-    let body = request.into_body().data().await.transpose()?;
+    let body = Some(request.into_body().collect().await.unwrap().to_bytes());
+
     Ok(body.map(|bytes| Uint8Array::from(bytes.as_ref()).into()))
 }
 
