@@ -49,9 +49,16 @@ fn prepare_headers(header_map: &HeaderMap<HeaderValue>) -> Result<Headers, Error
 
     for (header_name, header_value) in header_map.iter() {
         if header_name != CONTENT_TYPE && header_name != ACCEPT {
-            headers
-                .append(header_name.as_str(), header_value.to_str()?)
-                .map_err(Error::js_error)?;
+            match header_value.to_str() {
+                Ok(header_value) => {
+                    headers
+                    .append(header_name.as_str(), header_value)
+                    .map_err(Error::js_error)?;
+                },
+                Err(e) => {
+                    return Err(Error::JsError(format!("Invalid header value: {}", e.to_string())));
+                },
+            }
         }
     }
 

@@ -1,7 +1,8 @@
-use http::header::{InvalidHeaderName, InvalidHeaderValue, ToStrError};
+use hyper::header::{InvalidHeaderName, InvalidHeaderValue, ToStrError};
 use js_sys::Object;
 use thiserror::Error;
 use wasm_bindgen::{JsCast, JsValue};
+type http_invalid_header = http::header::InvalidHeaderName;
 
 /// Error type for `tonic-web-wasm-client`
 #[derive(Debug, Error)]
