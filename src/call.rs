@@ -3,7 +3,7 @@ use http::{
     response::Builder,
     HeaderMap, HeaderValue, Request, Response,
 };
-use http_body::Body;
+use http_body_util::BodyExt;
 use js_sys::{Array, Uint8Array};
 use tonic::body::BoxBody;
 use wasm_bindgen::JsValue;
@@ -58,7 +58,7 @@ fn prepare_headers(header_map: &HeaderMap<HeaderValue>) -> Result<Headers, Error
 }
 
 async fn prepare_body(request: Request<BoxBody>) -> Result<Option<JsValue>, Error> {
-    let body = request.into_body().data().await.transpose()?;
+    let body = Some(request.collect().await?.to_bytes());
     Ok(body.map(|bytes| Uint8Array::from(bytes.as_ref()).into()))
 }
 
@@ -67,12 +67,14 @@ fn prepare_request(
     headers: Headers,
     body: Option<JsValue>,
 ) -> Result<web_sys::Request, Error> {
-    let mut init = RequestInit::new();
+    let init = RequestInit::new();
 
-    init.method("POST")
-        .headers(headers.as_ref())
-        .body(body.as_ref())
-        .credentials(RequestCredentials::SameOrigin);
+    init.set_method("POST");
+    init.set_headers(headers.as_ref());
+    if let Some(ref body) = body {
+        init.set_body(body);
+    }
+    init.set_credentials(RequestCredentials::SameOrigin);
 
     web_sys::Request::new_with_str_and_init(url, &init).map_err(Error::js_error)
 }
