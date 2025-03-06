@@ -23,7 +23,7 @@ httparse = "1"
 js-sys = "0.3"
 pin-project = "1"
 thiserror = "1"
-tonic = { version = "0.12", default-features = false }
+tonic = { git = "https://github.com/hyperium/tonic.git", rev = "72b0fd59442d71804d4104e313ef6f140ab8f6d1", default-features = false }
 tower-service = "0.3"
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
