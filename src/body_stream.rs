@@ -12,7 +12,7 @@ use wasm_streams::readable::IntoStream;
 use crate::Error;
 
 pub struct BodyStream {
-    body_stream: Pin<Box<dyn Stream<Item = Result<http_body::Frame<Bytes>, Error>>>>,
+    body_stream: Pin<Box<dyn Stream<Item = Result<Bytes, Error>>>>,
 }
 
 impl BodyStream {
@@ -24,7 +24,7 @@ impl BodyStream {
                 let mut bytes_vec = vec![0; buffer.length() as usize];
                 buffer.copy_to(&mut bytes_vec);
 
-                http_body::Frame::data(bytes_vec.into())
+                bytes_vec.into()
             })
             .map_err(Error::js_error);
 
@@ -47,28 +47,19 @@ impl Body for BodyStream {
 
     type Error = Error;
 
-    fn poll_frame(
-            self: Pin<&mut Self>,
-            cx: &mut Context<'_>,
-        ) -> Poll<Option<Result<http_body::Frame<Self::Data>, Self::Error>>> {
-        self.get_mut().body_stream.as_mut().poll_next(cx)
-    }
-/*
-    fn poll_trailers(
-        self: Pin<&mut Self>,
+    fn poll_data(
+        mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
-    ) -> Poll<Result<Option<hyper::HeaderMap>, Self::Error>> {
-        Poll::Ready(Ok(None))
+    ) -> Poll<Option<Result<Self::Data, Self::Error>>> {
+        self.body_stream.as_mut().poll_next(cx)
     }
-     */
-    /* 
+
     fn poll_trailers(
         self: Pin<&mut Self>,
         _: &mut Context<'_>,
     ) -> Poll<Result<Option<http::HeaderMap>, Self::Error>> {
         Poll::Ready(Ok(None))
     }
-    */
 }
 
 unsafe impl Send for BodyStream {}
